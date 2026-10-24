@@ -9,6 +9,8 @@
 **/.next/
 **/.cache/
 *.class
+*.tsbuildinfo
+*.bak_*
 
 # Archivos locales de herramientas
 .idea/
