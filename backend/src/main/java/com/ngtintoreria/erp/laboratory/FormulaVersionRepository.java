@@ -1,0 +1,1 @@
+package com.ngtintoreria.erp.laboratory; import org.springframework.data.jpa.repository.JpaRepository; import java.util.*; public interface FormulaVersionRepository extends JpaRepository<FormulaVersion,UUID>{List<FormulaVersion> findByFormulaIdOrderByVersionNoDesc(UUID formulaId); Optional<FormulaVersion> findFirstByFormulaIdOrderByVersionNoDesc(UUID formulaId);}

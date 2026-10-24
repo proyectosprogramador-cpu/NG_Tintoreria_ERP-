@@ -1,0 +1,5 @@
+NG Tintoreria ERP
+Version: 0.13.2-R2
+Display: v0.13.2-R2
+Flyway esperado: V26
+Hotfix: health Docker/Actuator + SMTP opcional

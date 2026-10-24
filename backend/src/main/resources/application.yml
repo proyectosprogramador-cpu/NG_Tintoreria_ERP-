@@ -1,0 +1,81 @@
+server:
+  port: 8080
+  shutdown: graceful
+spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
+  mail:
+    host: ${SMTP_HOST:}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${SMTP_AUTH:true}
+          starttls:
+            enable: ${SMTP_STARTTLS:true}
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:ng_tintoreria}
+    username: ${DB_USER:ngerp}
+    password: ${DB_PASSWORD:ngerp_local_2026}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 2
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: America/Lima
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  jackson:
+    time-zone: America/Lima
+management:
+  # SMTP/WhatsApp son canales auxiliares. Su disponibilidad no debe tumbar la salud del ERP.
+  health:
+    mail:
+      enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+app:
+  storage:
+    root: ${ERP_STORAGE_ROOT:/app/data/files}
+  jwt:
+    secret: ${ERP_JWT_SECRET:NGTintoreriaERP-Local-Secret-Change-2026-Strong-Key}
+    expiration-minutes: ${ERP_JWT_EXPIRATION_MINUTES:480}
+  security:
+    max-login-attempts: ${ERP_MAX_LOGIN_ATTEMPTS:5}
+    lock-minutes: ${ERP_LOGIN_LOCK_MINUTES:15}
+  bootstrap:
+    admin-email: ${ERP_BOOTSTRAP_ADMIN_EMAIL:admin@ng.local}
+    admin-password: ${ERP_BOOTSTRAP_ADMIN_PASSWORD:Cambiar-2026!}
+    admin-name: ${ERP_BOOTSTRAP_ADMIN_NAME:Neul Guzman}
+  copilot:
+    notifications:
+      enabled: ${COPILOT_NOTIFY_ENABLED:true}
+      dry-run: ${COPILOT_NOTIFY_DRY_RUN:true}
+      scan-ms: ${COPILOT_NOTIFY_SCAN_MS:60000}
+      email-from: ${COPILOT_NOTIFY_EMAIL_FROM:no-reply@ng.local}
+      whatsapp-webhook-url: ${COPILOT_WHATSAPP_WEBHOOK_URL:}
+      whatsapp-webhook-token: ${COPILOT_WHATSAPP_WEBHOOK_TOKEN:}
+    proactive:
+      repeat-minutes: ${COPILOT_ALERT_REPEAT_MINUTES:240}
+      dismiss-hours: ${COPILOT_ALERT_DISMISS_HOURS:24}
+    llm:
+      enabled: ${COPILOT_LLM_ENABLED:false}
+      base-url: ${COPILOT_LLM_BASE_URL:}
+      api-key: ${COPILOT_LLM_API_KEY:}
+      model: ${COPILOT_LLM_MODEL:}

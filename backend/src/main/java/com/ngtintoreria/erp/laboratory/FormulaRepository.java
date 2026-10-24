@@ -1,0 +1,1 @@
+package com.ngtintoreria.erp.laboratory; import org.springframework.data.jpa.repository.JpaRepository; import java.util.UUID; public interface FormulaRepository extends JpaRepository<Formula,UUID>{boolean existsByCode(String code);}

@@ -1,0 +1,1 @@
+package com.ngtintoreria.erp.pricing; import org.springframework.data.jpa.repository.JpaRepository; import java.util.*; public interface PriceListRepository extends JpaRepository<PriceList,UUID>{boolean existsByCode(String code); List<PriceList> findByActiveTrue();}
