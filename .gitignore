@@ -1,0 +1,76 @@
+# Dependencias y archivos compilados
+**/node_modules/
+**/dist/
+**/build/
+**/target/
+**/.gradle/
+**/.vite/
+**/coverage/
+**/.next/
+**/.cache/
+*.class
+
+# Archivos locales de herramientas
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+*.swp
+
+# Secretos y configuración privada
+.env
+.env.*
+!.env.example
+!.env.sample
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.sample
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_ed25519
+**/secrets/
+**/.secrets/
+**/credentials/
+**/service-account*.json
+
+# Respaldos y volúmenes de datos (NO ignorar migraciones SQL de Flyway)
+**/backups/
+**/backup/
+**/pgdata/
+**/postgres-data/
+**/postgres_data/
+**/db-data/
+**/db_data/
+**/database-dumps/
+*.backup
+*.bak
+*.dump
+*.sql.gz
+*.sqlite
+*.sqlite3
+
+# Archivos subidos y evidencias privadas
+**/private-storage/
+**/user-uploads/
+**/evidence-uploads/
+
+# Archivos temporales y paquetes generados
+*.log
+*.tmp
+*.temp
+*.zip
+*.7z
+*.rar
+*.tar.gz
+*.pid
+
+# Archivos locales de despliegue
+docker-compose.override.yml
+compose.override.yaml
