@@ -65,7 +65,7 @@ function App(){
 }
 
 function Login(_:any){
-  const queryToken=new URLSearchParams(window.location.search).get('reset')||'';
+  const params=new URLSearchParams(window.location.search);\n  const queryToken=params.get('resetToken')||params.get('reset')||'';
   const [mode,setMode]=useState<'login'|'forgot'|'reset'>(queryToken?'reset':'login');
   const [email,setEmail]=useState('');
   const [password,setPassword]=useState('');
@@ -102,7 +102,7 @@ function Login(_:any){
     if(!validEmail(email)){setLocalError('Ingrese un correo electrónico válido.');return}
     try{
       setBusy(true);
-      const out=await api('/auth/password/forgot',{method:'POST',body:JSON.stringify({email:email.trim().toLowerCase()})});
+      const out=await api('/auth/forgot-password',{method:'POST',body:JSON.stringify({email:email.trim().toLowerCase()})});
       setMessage(out?.message||'Si el correo corresponde a una cuenta activa, recibirá instrucciones para recuperar el acceso.');
     }catch(e:any){
       setLocalError(e?.message||'No se pudo procesar la solicitud.');
@@ -118,7 +118,7 @@ function Login(_:any){
     if(newPassword!==confirmPassword){setLocalError('Las contraseñas no coinciden.');return}
     try{
       setBusy(true);
-      const out=await api('/auth/password/reset',{method:'POST',body:JSON.stringify({token:queryToken,newPassword})});
+      const out=await api('/auth/reset-password',{method:'POST',body:JSON.stringify({token:queryToken,newPassword})});
       window.history.replaceState({},'',window.location.pathname);
       setNewPassword('');setConfirmPassword('');
       setMessage(out?.message||'Contraseña actualizada correctamente.');
