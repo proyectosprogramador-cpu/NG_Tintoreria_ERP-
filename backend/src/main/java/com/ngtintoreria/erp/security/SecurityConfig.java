@@ -34,7 +34,7 @@ public class SecurityConfig {
                             res.getWriter().write("{\"status\":403,\"message\":\"No tiene permiso para esta operación\"}");
                         }))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/login", "/api/system/build", "/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/system/build", "/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
