@@ -1,4 +1,5 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
+import {personText,codeText} from './input-validation';
 import {downloadMachineSheetPdf,printMachineSheet} from './machine-profile-export';
 
 type Props={canWrite:boolean;canExecute:boolean;canConfig:boolean;canReportsExport:boolean;onError:(message:string)=>void};
