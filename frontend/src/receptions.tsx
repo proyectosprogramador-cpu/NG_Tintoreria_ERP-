@@ -1,4 +1,5 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
+import {personText,plateText} from './input-validation';
 import {DocumentBrand} from './branding';
 import QRCode from 'qrcode';
 
