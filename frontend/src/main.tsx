@@ -64,7 +64,119 @@ function App(){
  </div>
 }
 
-function Login({onLogin}:{onLogin:(u:any)=>void}){const [email,setEmail]=useState('admin@ng.local'),[password,setPassword]=useState(''),[err,setErr]=useState('');async function submit(e:any){e.preventDefault();try{const x=await api('/auth/login',{method:'POST',body:JSON.stringify({email,password})});localStorage.setItem('ngerp_token',x.token);onLogin(x.user)}catch(ex:any){setErr('No se pudo iniciar sesión. '+ex.message)}}return <div className="login"><form onSubmit={submit}><div className="loginmark">NG</div><h1>NG Tintorería ERP</h1><p>Operación integrada multiusuario v0.13.2-R2</p>{err&&<div className="alert">{err}</div>}<label>Correo<input value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Contraseña<input type="password" autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)}/></label><button className="primary">Ingresar</button><small>Las cuentas se bloquean temporalmente después de varios intentos fallidos.</small></form></div>}
+function Login(_:any){
+  const queryToken=new URLSearchParams(window.location.search).get('reset')||'';
+  const [mode,setMode]=useState<'login'|'forgot'|'reset'>(queryToken?'reset':'login');
+  const [email,setEmail]=useState('');
+  const [password,setPassword]=useState('');
+  const [newPassword,setNewPassword]=useState('');
+  const [confirmPassword,setConfirmPassword]=useState('');
+  const [busy,setBusy]=useState(false);
+  const [localError,setLocalError]=useState('');
+  const [message,setMessage]=useState('');
+
+  function switchMode(next:'login'|'forgot'|'reset'){
+    setLocalError('');setMessage('');setMode(next);
+  }
+
+  async function signIn(e:any){
+    e?.preventDefault();setLocalError('');setMessage('');
+    if(!email.trim()){setLocalError('Ingrese su correo.');return}
+    if(!validEmail(email)){setLocalError('Ingrese un correo electrónico válido.');return}
+    if(!password){setLocalError('Ingrese su contraseña.');return}
+    try{
+      setBusy(true);
+      const out=await api('/auth/login',{method:'POST',body:JSON.stringify({email:email.trim().toLowerCase(),password})});
+      const access=out?.token||out?.accessToken||out?.access_token;
+      if(!access)throw new Error('No se recibió una sesión válida.');
+      localStorage.setItem('ngerp_token',access);
+      window.location.replace(window.location.pathname);
+    }catch(e:any){
+      const m=String(e?.message||'');
+      setLocalError(m==='SESSION_EXPIRED'?'La sesión expiró. Ingrese nuevamente.':m||'No se pudo iniciar sesión. Revise sus credenciales.');
+    }finally{setBusy(false)}
+  }
+
+  async function requestReset(e:any){
+    e?.preventDefault();setLocalError('');setMessage('');
+    if(!validEmail(email)){setLocalError('Ingrese un correo electrónico válido.');return}
+    try{
+      setBusy(true);
+      const out=await api('/auth/password/forgot',{method:'POST',body:JSON.stringify({email:email.trim().toLowerCase()})});
+      setMessage(out?.message||'Si el correo corresponde a una cuenta activa, recibirá instrucciones para recuperar el acceso.');
+    }catch(e:any){
+      setLocalError(e?.message||'No se pudo procesar la solicitud.');
+    }finally{setBusy(false)}
+  }
+
+  async function resetPassword(e:any){
+    e?.preventDefault();setLocalError('');setMessage('');
+    if(!queryToken){setLocalError('El enlace de recuperación no es válido. Solicite uno nuevo.');return}
+    if(newPassword.length<10||!/[A-Z]/.test(newPassword)||!/[a-z]/.test(newPassword)||!/[0-9]/.test(newPassword)||!/[^A-Za-z0-9]/.test(newPassword)){
+      setLocalError('La contraseña debe tener 10 o más caracteres, mayúscula, minúscula, número y símbolo.');return
+    }
+    if(newPassword!==confirmPassword){setLocalError('Las contraseñas no coinciden.');return}
+    try{
+      setBusy(true);
+      const out=await api('/auth/password/reset',{method:'POST',body:JSON.stringify({token:queryToken,newPassword})});
+      window.history.replaceState({},'',window.location.pathname);
+      setNewPassword('');setConfirmPassword('');
+      setMessage(out?.message||'Contraseña actualizada correctamente.');
+      setMode('login');
+    }catch(e:any){setLocalError(e?.message||'No se pudo cambiar la contraseña.')}finally{setBusy(false)}
+  }
+
+  return <div className="login-industrial">
+    <section className="login-industrial-visual" aria-label="Tintorería industrial">
+      <div className="login-visual-shade"/>
+      <div className="login-visual-copy">
+        <span className="login-kicker">GESTIÓN INDUSTRIAL INTEGRADA</span>
+        <h1>Control y trazabilidad para cada etapa del proceso textil.</h1>
+        <p>Cotización, recepción, laboratorio, producción, calidad, reproceso, inventario y despacho en una sola plataforma.</p>
+        <div className="login-feature-row"><span>✓ Producción</span><span>✓ Calidad</span><span>✓ Trazabilidad</span></div>
+      </div>
+    </section>
+    <section className="login-industrial-panel">
+      <div className="login-box">
+        <div className="login-brand">
+          <div className="login-logo">NG</div>
+          <div><b>NG Tintorería ERP</b><small>Corporate Industrial · v0.13.2-R2</small></div>
+        </div>
+
+        {mode==='login'&&<form onSubmit={signIn}>
+          <div className="login-heading"><h2>Bienvenido</h2><p>Ingrese sus credenciales para acceder al sistema.</p></div>
+          <label>Correo<input type="email" autoComplete="username" maxLength={160} value={email} onChange={e=>{setLocalError('');setEmail(emailText(e.target.value))}} placeholder="usuario@empresa.com"/></label>
+          <label>Contraseña<input type="password" autoComplete="current-password" value={password} onChange={e=>{setLocalError('');setPassword(e.target.value)}} placeholder="••••••••••"/></label>
+          {localError&&<div className="login-inline-error" role="alert">{localError}</div>}
+          {message&&<div className="login-inline-success">{message}</div>}
+          <button className="primary login-submit" disabled={busy} type="submit">{busy?'Ingresando…':'Ingresar'}</button>
+          <button className="login-forgot" type="button" onClick={()=>switchMode('forgot')}>¿Olvidaste tu contraseña?</button>
+          <p className="login-security-note">Las cuentas se bloquean temporalmente después de varios intentos fallidos.</p>
+        </form>}
+
+        {mode==='forgot'&&<form onSubmit={requestReset}>
+          <div className="login-heading"><h2>Recuperar acceso</h2><p>Ingrese el correo asociado a su cuenta. Si está habilitada, recibirá un enlace temporal.</p></div>
+          <label>Correo<input type="email" autoComplete="email" maxLength={160} value={email} onChange={e=>{setLocalError('');setMessage('');setEmail(emailText(e.target.value))}} placeholder="usuario@empresa.com"/></label>
+          {localError&&<div className="login-inline-error" role="alert">{localError}</div>}
+          {message&&<div className="login-inline-success">{message}</div>}
+          <button className="primary login-submit" disabled={busy} type="submit">{busy?'Procesando…':'Enviar enlace de recuperación'}</button>
+          <button className="login-forgot" type="button" onClick={()=>switchMode('login')}>← Volver al inicio de sesión</button>
+        </form>}
+
+        {mode==='reset'&&<form onSubmit={resetPassword}>
+          <div className="login-heading"><h2>Crear nueva contraseña</h2><p>El enlace es temporal y solo puede utilizarse una vez.</p></div>
+          <label>Nueva contraseña<input type="password" autoComplete="new-password" value={newPassword} onChange={e=>{setLocalError('');setNewPassword(e.target.value)}}/></label>
+          <label>Confirmar contraseña<input type="password" autoComplete="new-password" value={confirmPassword} onChange={e=>{setLocalError('');setConfirmPassword(e.target.value)}}/></label>
+          <small className="password-hint">10+ caracteres, mayúscula, minúscula, número y símbolo.</small>
+          {localError&&<div className="login-inline-error" role="alert">{localError}</div>}
+          <button className="primary login-submit" disabled={busy} type="submit">{busy?'Actualizando…':'Guardar nueva contraseña'}</button>
+          <button className="login-forgot" type="button" onClick={()=>{window.history.replaceState({},'',window.location.pathname);switchMode('forgot')}}>Solicitar un enlace nuevo</button>
+        </form>}
+      </div>
+      <div className="login-footer">NG Tintorería ERP · Acceso seguro a operación industrial</div>
+    </section>
+  </div>
+}:{onLogin:(u:any)=>void}){const [email,setEmail]=useState('admin@ng.local'),[password,setPassword]=useState(''),[err,setErr]=useState('');async function submit(e:any){e.preventDefault();try{const x=await api('/auth/login',{method:'POST',body:JSON.stringify({email,password})});localStorage.setItem('ngerp_token',x.token);onLogin(x.user)}catch(ex:any){setErr('No se pudo iniciar sesión. '+ex.message)}}return <div className="login"><form onSubmit={submit}><div className="loginmark">NG</div><h1>NG Tintorería ERP</h1><p>Operación integrada multiusuario v0.13.2-R2</p>{err&&<div className="alert">{err}</div>}<label>Correo<input value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Contraseña<input type="password" autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)}/></label><button className="primary">Ingresar</button><small>Las cuentas se bloquean temporalmente después de varios intentos fallidos.</small></form></div>}
 
 function ForcePasswordChange({me,onDone}:{me:any,onDone:()=>void}){const [currentPassword,setCurrent]=useState(''),[newPassword,setNew]=useState(''),[confirmPassword,setConfirm]=useState(''),[err,setErr]=useState('');async function submit(e:any){e.preventDefault();if(newPassword!==confirmPassword){setErr('Las contraseñas nuevas no coinciden');return}try{await api('/auth/change-password',{method:'POST',body:JSON.stringify({currentPassword,newPassword})});alert('Contraseña actualizada. Por seguridad debe iniciar sesión nuevamente.');onDone()}catch(ex:any){setErr(ex.message)}}return <div className="login"><form onSubmit={submit}><div className="loginmark">NG</div><h1>Cambio de contraseña obligatorio</h1><p>{me.displayName} · Protección de acceso v0.13.2-R2</p>{err&&<div className="alert">{err}</div>}<label>Contraseña actual<input type="password" value={currentPassword} onChange={e=>setCurrent(e.target.value)}/></label><label>Nueva contraseña<input type="password" value={newPassword} onChange={e=>setNew(e.target.value)}/></label><label>Confirmar nueva contraseña<input type="password" value={confirmPassword} onChange={e=>setConfirm(e.target.value)}/></label><small>Mínimo 10 caracteres, con mayúscula, minúscula, número y símbolo.</small><button className="primary">Cambiar contraseña</button></form></div>}
 
