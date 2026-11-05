@@ -65,7 +65,8 @@ function App(){
 }
 
 function Login(_:any){
-  const params=new URLSearchParams(window.location.search);\n  const queryToken=params.get('resetToken')||params.get('reset')||'';
+  const params=new URLSearchParams(window.location.search);
+  const queryToken=params.get('resetToken')||params.get('reset')||'';
   const [mode,setMode]=useState<'login'|'forgot'|'reset'>(queryToken?'reset':'login');
   const [email,setEmail]=useState('');
   const [password,setPassword]=useState('');
