@@ -307,3 +307,53 @@ body>.alert,.shell>main>.alert{position:fixed;top:78px;right:22px;z-index:120;wi
  .login-visual-copy p{display:none}
  .login-box{padding:22px}
 }
+
+/* Tarifa sugerida en cotizaciones */
+.tariff-suggestion{
+  margin-top:10px;
+  padding:12px 14px;
+  border:1px solid #bfdbfe;
+  border-radius:10px;
+  background:#eff6ff;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+.tariff-suggestion>div{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+  min-width:0;
+}
+.tariff-suggestion small{
+  color:#475569;
+  font-weight:700;
+}
+.tariff-suggestion b{
+  color:#1d4ed8;
+  font-size:16px;
+}
+.tariff-suggestion span{
+  color:#475569;
+  font-size:12px;
+  line-height:1.35;
+}
+.tariff-suggestion em{
+  color:#92400e;
+  font-size:12px;
+  font-style:normal;
+}
+.tariff-suggestion button{
+  flex:0 0 auto;
+  white-space:nowrap;
+}
+@media(max-width:720px){
+  .tariff-suggestion{
+    align-items:stretch;
+    flex-direction:column;
+  }
+  .tariff-suggestion button{
+    width:100%;
+  }
+}
