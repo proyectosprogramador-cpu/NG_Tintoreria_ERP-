@@ -2,7 +2,7 @@ import React,{useEffect,useMemo,useState} from 'react';
 import {codeText,digitsOnly,emailText,personText,validDigits,validEmail,validPerson} from './input-validation';
 
 type Props={
-  canMove:boolean; canReserve:boolean; canRequestRead:boolean; canRequest:boolean; canApprove:boolean;
+  canMove:boolean; canCreateItem:boolean; canReserve:boolean; canRequestRead:boolean; canRequest:boolean; canApprove:boolean;
   canPurchaseRead:boolean; canPurchaseWrite:boolean; canPurchaseApprove:boolean; canReceive:boolean; canReportsExport:boolean; canSupplierRead:boolean; canSupplierWrite:boolean;
   onError:(message:string)=>void;
 };
@@ -52,7 +52,7 @@ function ExportButtons({base,onError}:{base:string;onError:(m:string)=>void}){
 }
 
 export function Inventory(props:Props){
- const {canMove,canRequestRead,canRequest,canApprove,canPurchaseRead,canPurchaseWrite,canPurchaseApprove,canReceive,canReportsExport,canSupplierRead,canSupplierWrite,onError}=props;
+ const {canMove,canCreateItem,canRequestRead,canRequest,canApprove,canPurchaseRead,canPurchaseWrite,canPurchaseApprove,canReceive,canReportsExport,canSupplierRead,canSupplierWrite,onError}=props;
  const [summary,setSummary]=useState<any>({}),[items,setItems]=useState<any[]>([]),[movements,setMovements]=useState<any[]>([]),[reservations,setReservations]=useState<any[]>([]),[requests,setRequests]=useState<any[]>([]),[orders,setOrders]=useState<any[]>([]),[suppliers,setSuppliers]=useState<any[]>([]);
  const [view,setView]=useState('STOCK'),[search,setSearch]=useState(''),[itemEdit,setItemEdit]=useState<any|null>(null),[moveEdit,setMoveEdit]=useState<any|null>(null),[requestDetail,setRequestDetail]=useState<any|null>(null),[orderDetail,setOrderDetail]=useState<any|null>(null),[manualOrder,setManualOrder]=useState<any|null>(null),[manualRequest,setManualRequest]=useState<any|null>(null),[busy,setBusy]=useState(false);
 
@@ -77,6 +77,17 @@ export function Inventory(props:Props){
   if(!canSupplierWrite)throw new Error('No tiene permiso para registrar proveedores.');
   const saved=await api('/suppliers',{method:'POST',body:JSON.stringify({...data,active:true})});
   setSuppliers((prev:any[])=>[...prev,saved].sort((x,y)=>String(x.name).localeCompare(String(y.name),'es')));
+  return saved;
+ }
+ async function createQuickItem(data:any){
+  if(!canCreateItem)throw new Error('No tiene permiso para dar de alta insumos.');
+  const saved=await api('/inventory/items/quick',{method:'POST',body:JSON.stringify({
+   code:data.code,name:data.name,baseUnit:data.baseUnit,
+   minimumStock:0,safetyStock:0,standardCost:null,active:true
+  })});
+  setItems((prev:any[])=>[...prev.filter(x=>x.id!==saved.id),saved]
+    .sort((a,b)=>String(a.name).localeCompare(String(b.name),'es')));
+  setSummary((prev:any)=>({...prev,items:Number(prev.items||0)+1,noStock:Number(prev.noStock||0)+1}));
   return saved;
  }
  async function createManualRequest(draft:any){
@@ -104,14 +115,43 @@ export function Inventory(props:Props){
 
   {itemEdit&&<Modal title={itemEdit.id?'Editar insumo':'Nuevo insumo'} onClose={()=>setItemEdit(null)}><div className="formgrid"><label>Código<input maxLength={40} value={itemEdit.code||''} onChange={e=>setItemEdit({...itemEdit,code:codeText(e.target.value,40)})}/></label><label>Nombre<input value={itemEdit.name||''} onChange={e=>setItemEdit({...itemEdit,name:e.target.value})}/></label><label>Unidad base<input maxLength={20} value={itemEdit.baseUnit||'KG'} onChange={e=>setItemEdit({...itemEdit,baseUnit:codeText(e.target.value,20)})}/></label><label>Stock mínimo<input type="number" min="0" step="0.001" value={itemEdit.minimumStock??0} onChange={e=>setItemEdit({...itemEdit,minimumStock:Number(e.target.value)})}/></label><label>Stock seguridad<input type="number" min="0" step="0.001" value={itemEdit.safetyStock??0} onChange={e=>setItemEdit({...itemEdit,safetyStock:Number(e.target.value)})}/></label><label>Costo estándar / referencia (PEN por unidad)<input type="number" min="0" step="0.0001" value={itemEdit.standardCost??''} onChange={e=>setItemEdit({...itemEdit,standardCost:e.target.value===''?null:Number(e.target.value)})}/></label><label>Estado<select value={String(itemEdit.active!==false)} onChange={e=>setItemEdit({...itemEdit,active:e.target.value==='true'})}><option value="true">Activo</option><option value="false">Inactivo</option></select></label></div><div className="modal-actions"><button onClick={()=>setItemEdit(null)}>Cancelar</button><button className="primary" disabled={busy||!itemEdit.code||!itemEdit.name} onClick={saveItem}>Guardar</button></div></Modal>}
   {moveEdit&&<Modal title="Registrar movimiento de almacén" onClose={()=>setMoveEdit(null)}><div className="formgrid"><label>Insumo<select value={moveEdit.inventoryItemId||''} onChange={e=>setMoveEdit({...moveEdit,inventoryItemId:e.target.value})}><option value="">Seleccione…</option>{items.filter(x=>x.active!==false).map(x=><option key={x.id} value={x.id}>{x.code} · {x.name}</option>)}</select></label><label>Movimiento<select value={moveEdit.movementType} onChange={e=>setMoveEdit({...moveEdit,movementType:e.target.value})}><option value="INITIAL_STOCK">Stock inicial</option><option value="PURCHASE_RECEIPT">Recepción de compra manual</option><option value="ADJUSTMENT_IN">Ajuste de entrada</option><option value="ADJUSTMENT_OUT">Ajuste de salida</option><option value="PRODUCTION_RETURN">Devolución de producción</option></select></label><label>Cantidad<input type="number" min="0.000001" step="0.001" value={moveEdit.quantity} onChange={e=>setMoveEdit({...moveEdit,quantity:e.target.value})}/></label><label>Lote<input maxLength={80} value={moveEdit.lotCode||''} onChange={e=>setMoveEdit({...moveEdit,lotCode:codeText(e.target.value,80)})}/></label><label>Costo unitario opcional<input type="number" min="0" step="0.0001" value={moveEdit.unitCost} onChange={e=>setMoveEdit({...moveEdit,unitCost:e.target.value})}/></label><label>Referencia<input value={moveEdit.referenceNumber||''} onChange={e=>setMoveEdit({...moveEdit,referenceNumber:e.target.value})} placeholder="OC, guía, ajuste…"/></label></div><label>Comentario<textarea rows={3} value={moveEdit.comment||''} onChange={e=>setMoveEdit({...moveEdit,comment:e.target.value})}/></label><div className="modal-actions"><button onClick={()=>setMoveEdit(null)}>Cancelar</button><button className="primary" disabled={busy||!moveEdit.inventoryItemId||!moveEdit.quantity} onClick={saveMovement}>Registrar</button></div></Modal>}
-  {manualRequest&&<ManualRequestModal draft={manualRequest} setDraft={setManualRequest} items={items} busy={busy} onClose={()=>setManualRequest(null)} onCreate={createManualRequest}/>}
+  {manualRequest&&<ManualRequestModal draft={manualRequest} setDraft={setManualRequest} items={items} canCreateItem={canCreateItem} onCreateItem={createQuickItem} busy={busy} onClose={()=>setManualRequest(null)} onCreate={createManualRequest}/>}
    {requestDetail&&<RequestModal dto={requestDetail} canRequest={canRequest} canApprove={canApprove} canCreateOrder={canPurchaseWrite} busy={busy} onClose={()=>setRequestDetail(null)} onStatus={requestStatus} onSave={saveRequestDraft} onCreateOrder={createOrderFromRequest}/>} 
   {orderDetail&&<OrderModal dto={orderDetail} suppliers={suppliers} canWrite={canPurchaseWrite} canSupplierWrite={canSupplierWrite} onCreateSupplier={createSupplier} canApprove={canPurchaseApprove} canReceive={canReceive} busy={busy} onClose={()=>setOrderDetail(null)} onSave={saveOrder} onAction={orderAction} onReceive={receiveOrder} onError={onError}/>} 
-  {manualOrder&&<ManualOrderModal draft={manualOrder} setDraft={setManualOrder} items={items} suppliers={suppliers} canSupplierWrite={canSupplierWrite} onCreateSupplier={createSupplier} busy={busy} onClose={()=>setManualOrder(null)} onCreate={createManualOrder}/>} 
+  {manualOrder&&<ManualOrderModal draft={manualOrder} setDraft={setManualOrder} items={items} suppliers={suppliers} canCreateItem={canCreateItem} onCreateItem={createQuickItem} canSupplierWrite={canSupplierWrite} onCreateSupplier={createSupplier} busy={busy} onClose={()=>setManualOrder(null)} onCreate={createManualOrder}/>} 
  </>;
 }
 
-function ManualRequestModal({draft,setDraft,items,busy,onClose,onCreate}:any){
+
+function InventoryItemQuickForm({items,busy,onCancel,onSave}:any){
+ const [data,setData]=useState({code:'',name:'',baseUnit:'KG'});
+ const [saving,setSaving]=useState(false),[error,setError]=useState('');
+ const code=data.code.trim(),name=data.name.trim(),unit=data.baseUnit.trim();
+ const duplicated=items.find((item:any)=>String(item.code||'').trim().toLowerCase()===code.toLowerCase()
+  ||String(item.name||'').trim().toLowerCase()===name.toLowerCase());
+ const valid=!!code&&!!name&&!!unit&&name.length<=180&&!duplicated;
+ const submit=async()=>{
+  if(!code||!name||!unit){setError('Código, nombre y unidad son obligatorios.');return}
+  if(duplicated){setError('El insumo ya existe en el catálogo. Selecciónelo en la lista.');return}
+  try{setError('');setSaving(true);await onSave({code,name,baseUnit:unit})}
+  catch(e:any){setError(e?.message||'No se pudo registrar el insumo.')}
+  finally{setSaving(false)}
+ };
+ return <div className="nested-modal">
+  <div className="panelhead"><div><h4>Nuevo insumo</h4><p>Se guardará en Almacén con stock inicial cero y se seleccionará en esta línea. La solicitud u OC se guardará por separado.</p></div></div>
+  <div className="formgrid">
+   <label>Código *<input maxLength={40} value={data.code} onChange={e=>{setError('');setData(old=>({...old,code:codeText(e.target.value,40)}))}} placeholder="INS-001"/></label>
+   <label>Nombre del insumo *<input maxLength={180} value={data.name} onChange={e=>{setError('');setData(old=>({...old,name:e.target.value}))}} placeholder="Ej.: Ácido acético"/></label>
+   <label>Unidad base *<input maxLength={20} value={data.baseUnit} onChange={e=>{setError('');setData(old=>({...old,baseUnit:codeText(e.target.value,20)}))}} placeholder="KG, L, UND…"/></label>
+  </div>
+  {duplicated&&code&&name&&<div className="form-alert" role="alert">Insumo similar existente: {duplicated.code} · {duplicated.name}. Utilice el insumo del catálogo.</div>}
+  {error&&<div className="form-alert" role="alert">{error}</div>}
+  <div className="modal-actions"><button type="button" disabled={busy||saving} onClick={onCancel}>Cancelar</button><button type="button" className="primary" disabled={busy||saving||!valid} onClick={submit}>{saving?'Registrando…':'Guardar y seleccionar'}</button></div>
+ </div>;
+}
+
+function ManualRequestModal({draft,setDraft,items,canCreateItem,onCreateItem,busy,onClose,onCreate}:any){
+  const [addingItemLine,setAddingItemLine]=useState<number|null>(null);
   const [error,setError]=useState('');
   const activeItems=items.filter((item:any)=>item.active!==false);
   const patchLine=(idx:number,key:string,value:string)=>setDraft((old:any)=>({...old,lines:old.lines.map((x:any,i:number)=>i===idx?{...x,[key]:value}:x)}));
@@ -128,15 +168,20 @@ function ManualRequestModal({draft,setDraft,items,busy,onClose,onCreate}:any){
    <p className="inventory-note">Almacén registra la necesidad. Compras o Administración aprueba la solicitud antes de generar una orden de compra.</p>
    <div className="formgrid"><label>Prioridad *<select value={draft.priority} onChange={e=>setDraft((old:any)=>({...old,priority:e.target.value}))}><option value="NORMAL">Normal</option><option value="HIGH">Alta</option><option value="URGENT">Urgente</option></select></label>
    <label>Motivo de reposición *<textarea rows={2} maxLength={500} value={draft.notes} onChange={e=>setDraft((old:any)=>({...old,notes:e.target.value}))} placeholder="Ej.: reponer sal para mantener el stock mínimo"/></label></div>
-   <div className="panelhead"><div><h4>Insumos solicitados</h4><p>Puede seleccionar varios insumos del maestro de Almacén.</p></div><button disabled={busy||draft.lines.length>=50||!activeItems.length} onClick={addLine}>＋ Línea</button></div>
+   <div className="panelhead"><div><h4>Insumos solicitados</h4><p>Puede seleccionar varios insumos del maestro de Almacén.</p></div><button disabled={busy||draft.lines.length>=50} onClick={addLine}>＋ Línea</button></div>
    <div className="tablewrap"><table><thead><tr><th>Insumo</th><th>Disponible</th><th>Cantidad solicitada</th><th>Unidad</th><th/></tr></thead><tbody>{draft.lines.map((line:any,idx:number)=>{const item=activeItems.find((x:any)=>x.id===line.inventoryItemId);return <tr key={idx}>
-    <td><select value={line.inventoryItemId} onChange={e=>patchLine(idx,'inventoryItemId',e.target.value)}><option value="">Seleccione un insumo…</option>{activeItems.map((x:any)=><option key={x.id} value={x.id}>{x.code} · {x.name}</option>)}</select></td>
+    <td><div className="purchase-item-picker"><select value={line.inventoryItemId} onChange={e=>patchLine(idx,'inventoryItemId',e.target.value)}><option value="">Seleccione un insumo…</option>{activeItems.map((x:any)=><option key={x.id} value={x.id}>{x.code} · {x.name}</option>)}</select>{canCreateItem&&<button type="button" disabled={busy} onClick={()=>setAddingItemLine(idx)}>＋ Nuevo</button>}</div></td>
     <td>{item?q(item.availableQuantity,6):'—'}</td><td><input className="qty-input" type="number" min="0.000001" step="0.001" value={line.quantity} onChange={e=>patchLine(idx,'quantity',e.target.value)}/></td>
     <td>{item?.baseUnit||'—'}</td><td><button disabled={busy||draft.lines.length===1} onClick={()=>removeLine(idx)}>Quitar</button></td>
    </tr>})}</tbody></table></div>
+   {addingItemLine!==null&&<InventoryItemQuickForm items={items} busy={busy} onCancel={()=>setAddingItemLine(null)} onSave={async (record:any)=>{
+    const saved=await onCreateItem(record);
+    setDraft((old:any)=>({...old,lines:old.lines.map((line:any,i:number)=>i===addingItemLine?{...line,inventoryItemId:saved.id}:line)}));
+    setAddingItemLine(null);
+   }}/>}
    {duplicated&&<div className="form-alert" role="alert">El mismo insumo aparece más de una vez.</div>}
    {error&&<div className="form-alert" role="alert">{error}</div>}
-   {!activeItems.length&&<div className="form-alert" role="alert">No hay insumos activos para solicitar.</div>}
+   {!activeItems.length&&<div className="form-alert" role="alert">{canCreateItem?'No hay insumos activos. Utilice «＋ Nuevo» para registrar el primero.':'No hay insumos activos. Solicite su registro a Almacén.'}</div>}
    <div className="modal-actions"><button disabled={busy} onClick={onClose}>Cancelar</button><button className="primary" disabled={busy||!valid} onClick={submit}>{busy?'Guardando…':'Crear solicitud en borrador'}</button></div>
   </Modal>
  }
@@ -228,10 +273,11 @@ function SupplierQuickForm({busy,onCancel,onSave}:any){
  </div>;
 }
 
-function ManualOrderModal({draft,setDraft,items,suppliers,canSupplierWrite,onCreateSupplier,busy,onClose,onCreate}:any){
+function ManualOrderModal({draft,setDraft,items,suppliers,canCreateItem,onCreateItem,canSupplierWrite,onCreateSupplier,busy,onClose,onCreate}:any){
+  const [addingItemLine,setAddingItemLine]=useState<number|null>(null);
  const [addingSupplier,setAddingSupplier]=useState(false);
  const patchLine=(idx:number,key:string,value:any)=>setDraft({...draft,lines:draft.lines.map((x:any,i:number)=>i===idx?{...x,[key]:value}:x)});
- const add=()=>setDraft({...draft,lines:[...draft.lines,{inventoryItemId:items[0]?.id||'',quantity:'',unit:items[0]?.baseUnit||'KG',unitPrice:'',lineDiscount:0}]});
+ const add=()=>{const first=items.find((x:any)=>x.active!==false);setDraft((old:any)=>({...old,lines:[...old.lines,{inventoryItemId:first?.id||'',quantity:'',unit:first?.baseUnit||'KG',unitPrice:'',lineDiscount:0}]}))};
  const remove=(idx:number)=>setDraft({...draft,lines:draft.lines.filter((_:any,i:number)=>i!==idx)});
  const chooseItem=(idx:number,id:string)=>{const item=items.find((x:any)=>x.id===id);setDraft({...draft,lines:draft.lines.map((x:any,i:number)=>i===idx?{...x,inventoryItemId:id,unit:item?.baseUnit||'KG'}:x)})};
  const chooseSupplier=(id:string)=>{const s=suppliers.find((x:any)=>x.id===id);setDraft({...draft,supplierId:id,paymentTerms:s?.paymentTerms||draft.paymentTerms})};
@@ -241,5 +287,12 @@ function ManualOrderModal({draft,setDraft,items,suppliers,canSupplierWrite,onCre
    setDraft((old:any)=>({...old,supplierId:saved.id,paymentTerms:saved.paymentTerms||old.paymentTerms}));
    setAddingSupplier(false);
   }}/>}
-  <div className="panelhead"><h4>Insumos</h4><button onClick={add}>＋ Línea</button></div><div className="tablewrap"><table><thead><tr><th>Insumo</th><th>Cantidad</th><th>Und.</th><th>P. unitario</th><th>Desc. línea</th><th/></tr></thead><tbody>{draft.lines.map((x:any,idx:number)=><tr key={idx}><td><select value={x.inventoryItemId} onChange={e=>chooseItem(idx,e.target.value)}>{items.filter((i:any)=>i.active!==false).map((i:any)=><option key={i.id} value={i.id}>{i.code} · {i.name}</option>)}</select></td><td><input className="qty-input" type="number" min="0.000001" step="0.001" value={x.quantity} onChange={e=>patchLine(idx,'quantity',e.target.value)}/></td><td><input className="qty-input" value={x.unit} onChange={e=>patchLine(idx,'unit',e.target.value)}/></td><td><input className="qty-input" type="number" min="0" step="0.0001" value={x.unitPrice} onChange={e=>patchLine(idx,'unitPrice',e.target.value)}/></td><td><input className="qty-input" type="number" min="0" step="0.01" value={x.lineDiscount} onChange={e=>patchLine(idx,'lineDiscount',e.target.value)}/></td><td><button disabled={draft.lines.length===1} onClick={()=>remove(idx)}>Quitar</button></td></tr>)}</tbody></table></div><label>Observaciones<textarea rows={3} value={draft.notes} onChange={e=>setDraft({...draft,notes:e.target.value})}/></label><div className="modal-actions"><button onClick={onClose}>Cancelar</button><button className="primary" disabled={busy||!draft.supplierId||!draft.lines.length||draft.lines.some((x:any)=>!x.inventoryItemId||Number(x.quantity)<=0)} onClick={()=>onCreate(draft)}>Crear borrador de OC</button></div></Modal>
+  <div className="panelhead"><h4>Insumos</h4><button onClick={add}>＋ Línea</button></div><div className="tablewrap"><table><thead><tr><th>Insumo</th><th>Cantidad</th><th>Und.</th><th>P. unitario</th><th>Desc. línea</th><th/></tr></thead><tbody>{draft.lines.map((x:any,idx:number)=><tr key={idx}><td><div className="purchase-item-picker"><select value={x.inventoryItemId} onChange={e=>chooseItem(idx,e.target.value)}><option value="">Seleccione un insumo…</option>{items.filter((i:any)=>i.active!==false).map((i:any)=><option key={i.id} value={i.id}>{i.code} · {i.name}</option>)}</select>{canCreateItem&&<button type="button" disabled={busy} onClick={()=>setAddingItemLine(idx)}>＋ Nuevo</button>}</div></td><td><input className="qty-input" type="number" min="0.000001" step="0.001" value={x.quantity} onChange={e=>patchLine(idx,'quantity',e.target.value)}/></td><td><input className="qty-input" value={x.unit} onChange={e=>patchLine(idx,'unit',e.target.value)}/></td><td><input className="qty-input" type="number" min="0" step="0.0001" value={x.unitPrice} onChange={e=>patchLine(idx,'unitPrice',e.target.value)}/></td><td><input className="qty-input" type="number" min="0" step="0.01" value={x.lineDiscount} onChange={e=>patchLine(idx,'lineDiscount',e.target.value)}/></td><td><button disabled={draft.lines.length===1} onClick={()=>remove(idx)}>Quitar</button></td></tr>)}</tbody></table></div>
+  {addingItemLine!==null&&<InventoryItemQuickForm items={items} busy={busy} onCancel={()=>setAddingItemLine(null)} onSave={async (record:any)=>{
+   const saved=await onCreateItem(record);
+   setDraft((old:any)=>({...old,lines:old.lines.map((line:any,i:number)=>i===addingItemLine?{...line,inventoryItemId:saved.id,unit:saved.baseUnit||'KG'}:line)}));
+   setAddingItemLine(null);
+  }}/>}
+  {!items.some((i:any)=>i.active!==false)&&<div className="form-alert" role="alert">{canCreateItem?'No hay insumos activos. Utilice «＋ Nuevo» para registrar el primero.':'No hay insumos activos. Solicite su registro a Almacén.'}</div>}
+  <label>Observaciones<textarea rows={3} value={draft.notes} onChange={e=>setDraft({...draft,notes:e.target.value})}/></label><div className="modal-actions"><button onClick={onClose}>Cancelar</button><button className="primary" disabled={busy||!draft.supplierId||!draft.lines.length||draft.lines.some((x:any)=>!x.inventoryItemId||Number(x.quantity)<=0)} onClick={()=>onCreate(draft)}>Crear borrador de OC</button></div></Modal>
 }
