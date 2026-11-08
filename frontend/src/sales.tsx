@@ -54,8 +54,12 @@ export function Quotations({canWrite,canApprove,canCreateOrder,canReportsExport,
   const stats=useMemo(()=>({draft:rows.filter(r=>r.header.status==='DRAFT').length,review:rows.filter(r=>r.header.status==='IN_REVIEW').length,sent:rows.filter(r=>r.header.status==='SENT').length,approved:rows.filter(r=>r.header.status==='APPROVED').length}),[rows]);
 
   function openEdit(dto?:any){setFormError('');setTariffSuggestions({});if(dto)setEdit({...dto.header,items:dto.items.map((x:any)=>({...x,warning:''}))});else setEdit(emptyQuote())}
-  function patchLine(index:number,changes:AnyObj){setEdit((current:any)=>({...current,items:current.items.map((x:any,i:number)=>i===index?{...x,...changes}:x)}))}
-  function removeLine(index:number){setEdit((current:any)=>({...current,items:current.items.filter((_:any,i:number)=>i!==index)}))}
+  function patchLine(index:number,changes:AnyObj){
+    const pricingBasisChanged=['fabricId','colorId','processId','finishId','quantity','unit'].some(key=>Object.prototype.hasOwnProperty.call(changes,key));
+    if(pricingBasisChanged)setTariffSuggestions(current=>{const next={...current};delete next[index];return next});
+    setEdit((current:any)=>({...current,items:current.items.map((x:any,i:number)=>i===index?{...x,...changes}:x)}));
+  }
+  function removeLine(index:number){setTariffSuggestions({});setEdit((current:any)=>({...current,items:current.items.filter((_:any,i:number)=>i!==index)}))}
   async function recommend(index:number){
     const line=edit.items[index];
     if(!edit.clientId||!line.processId||Number(line.quantity)<=0){setFormError('Seleccione cliente, proceso y una cantidad mayor que cero antes de calcular la tarifa.');return}
