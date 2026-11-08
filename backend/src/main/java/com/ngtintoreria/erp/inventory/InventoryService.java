@@ -104,14 +104,27 @@ public class InventoryService {
 
     @Transactional
     public Map<String,Object> saveItem(ItemRequest input, String actor) {
+        if(input==null)throw new IllegalArgumentException("Ingrese los datos del insumo");
         String code=clean(input.code()); String name=clean(input.name());
         if(code==null||name==null) throw new IllegalArgumentException("Código y nombre del insumo son obligatorios");
+        if(code.length()>60||!code.matches("[A-Za-z0-9._/-]+"))
+            throw new IllegalArgumentException("El código admite hasta 60 caracteres: letras, números, puntos, guiones y barras");
+        if(name.length()>180)throw new IllegalArgumentException("El nombre del insumo admite como máximo 180 caracteres");
         String unit=clean(input.baseUnit()); if(unit==null)unit="KG";
+        if(unit.length()>20||!unit.matches("[A-Za-z0-9._/-]+"))
+            throw new IllegalArgumentException("La unidad base admite hasta 20 caracteres y no puede contener espacios");
+        UUID id=input.id();
+        for(Map<String,Object> existing:jdbc.queryForList(
+                "select id,code,name from inventory_items where lower(code)=lower(?) or lower(name)=lower(?)",code,name)){
+            if(id!=null&&id.equals(existing.get("id")))continue;
+            if(code.equalsIgnoreCase(String.valueOf(existing.get("code"))))
+                throw new IllegalArgumentException("Ya existe un insumo con el código "+existing.get("code")+". Selecciónelo en el catálogo.");
+            throw new IllegalArgumentException("Ya existe un insumo con el nombre "+existing.get("name")+". Selecciónelo en el catálogo.");
+        }
         BigDecimal min=nonNegative(input.minimumStock(),"El stock mínimo no puede ser negativo");
         BigDecimal safety=nonNegative(input.safetyStock(),"El stock de seguridad no puede ser negativo");
         BigDecimal standardCost=nullableNonNegative(input.standardCost(),"El costo estándar no puede ser negativo");
         boolean active=input.active()==null||input.active();
-        UUID id=input.id();
         if(id==null){
             id=jdbc.queryForObject("""
                 insert into inventory_items(code,name,base_unit,minimum_stock,safety_stock,standard_cost,active)
