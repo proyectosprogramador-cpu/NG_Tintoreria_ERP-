@@ -35,6 +35,15 @@ public class SecurityConfig {
                         }))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/login", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/system/build", "/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
+                        // Filtro adicional por rol para /api/reports (antes de @PreAuthorize).
+                        // Ocultar tarjetas en React no protege URLs de descarga directas.
+                        .requestMatchers("/api/reports/**").access((authentication, context) -> {
+                            var current = authentication.get();
+                            boolean valid = current != null && current.isAuthenticated()
+                                    && !(current instanceof org.springframework.security.authentication.AnonymousAuthenticationToken);
+                            return new org.springframework.security.authorization.AuthorizationDecision(
+                                    valid && ReportAccessPolicy.canExport(current, context.getRequest().getServletPath()));
+                        })
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
