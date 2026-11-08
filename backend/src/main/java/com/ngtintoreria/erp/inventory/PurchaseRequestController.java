@@ -20,6 +20,12 @@ public class PurchaseRequestController {
     @PreAuthorize("hasAuthority('PURCHASE_REQUESTS_READ')")
     public Map<String,Object> detail(@PathVariable UUID id){return service.detail(id);}
 
+    @PostMapping("/manual")
+    @PreAuthorize("hasAuthority('PURCHASE_REQUESTS_WRITE')")
+    public Map<String,Object> manual(@RequestBody PurchaseRequestService.ManualCreate input,Authentication auth){
+        return service.createManual(input,auth.getName());
+    }
+
     @PostMapping("/from-production/{orderId}")
     @PreAuthorize("hasAuthority('PURCHASE_REQUESTS_WRITE')")
     public Map<String,Object> fromProduction(@PathVariable UUID orderId,Authentication auth){return service.fromProduction(orderId,auth.getName());}

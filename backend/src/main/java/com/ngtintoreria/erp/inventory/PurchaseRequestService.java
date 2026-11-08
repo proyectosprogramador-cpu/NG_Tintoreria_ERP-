@@ -18,6 +18,8 @@ public class PurchaseRequestService {
     public record StatusRequest(String status,String comment){}
     public record DraftLine(UUID id,BigDecimal requestedQuantity){}
     public record DraftUpdate(String notes,List<DraftLine> lines){}
+    public record ManualLine(UUID inventoryItemId,BigDecimal quantity){}
+    public record ManualCreate(String priority,String notes,List<ManualLine> lines){}
 
     public List<Map<String,Object>> list(){
         return jdbc.query("""
@@ -49,6 +51,60 @@ public class PurchaseRequestService {
         Map<String,Object> out=new LinkedHashMap<>();out.put("header",headers.get(0));
         out.put("items",jdbc.queryForList("select * from purchase_request_items where purchase_request_id=? order by line_no",id));
         return out;
+    }
+
+    /** Solicitud de insumos sin OP; solo Compras/Administración puede aprobarla. */
+    @Transactional
+    public Map<String,Object> createManual(ManualCreate input,String actor){
+        if(input==null)throw new IllegalArgumentException("Ingrese los datos de la solicitud");
+        String priority=normal(input.priority());
+        if(priority.isEmpty())priority="NORMAL";
+        if(!Set.of("NORMAL","HIGH","URGENT").contains(priority))
+            throw new IllegalArgumentException("Prioridad de solicitud no válida");
+        String notes=clean(input.notes());
+        if(notes==null)throw new IllegalArgumentException("Indique el motivo de reposición");
+        if(notes.length()>500)throw new IllegalArgumentException("El motivo no puede exceder 500 caracteres");
+        if(input.lines()==null||input.lines().isEmpty()||input.lines().size()>50)
+            throw new IllegalArgumentException("Agregue entre 1 y 50 insumos");
+
+        Set<UUID> selected=new HashSet<>();
+        List<Map<String,Object>> materials=new ArrayList<>();
+        List<BigDecimal> quantities=new ArrayList<>();
+        for(ManualLine line:input.lines()){
+            if(line==null||line.inventoryItemId()==null||line.quantity()==null)
+                throw new IllegalArgumentException("Seleccione un insumo e indique la cantidad");
+            BigDecimal qty=line.quantity().stripTrailingZeros();
+            if(qty.signum()<=0||qty.scale()>6||qty.compareTo(new BigDecimal("999999999999.999999"))>0)
+                throw new IllegalArgumentException("La cantidad debe ser positiva y tener hasta seis decimales");
+            if(!selected.add(line.inventoryItemId()))
+                throw new IllegalArgumentException("Un insumo no puede repetirse en la misma solicitud");
+            List<Map<String,Object>> matches=jdbc.queryForList(
+                "select code,name,base_unit from inventory_items where id=? and active=true",
+                line.inventoryItemId());
+            if(matches.isEmpty())throw new IllegalArgumentException("El insumo seleccionado no existe o está inactivo");
+            materials.add(matches.get(0));
+            quantities.add(qty);
+        }
+
+        Long seq=jdbc.queryForObject("select nextval('purchase_request_number_seq')",Long.class);
+        String number=String.format("SC-%06d",seq==null?1:seq);
+        UUID id=jdbc.queryForObject("""
+            insert into purchase_requests(request_number,status,priority,notes,requested_by)
+            values (?,'DRAFT',?,?,?) returning id
+            """,UUID.class,number,priority,notes,actor);
+        for(int i=0;i<materials.size();i++){
+            Map<String,Object> material=materials.get(i);
+            BigDecimal qty=quantities.get(i);
+            jdbc.update("""
+                insert into purchase_request_items(purchase_request_id,inventory_item_id,material_code,material_name,
+                    required_quantity,shortage_quantity,requested_quantity,unit,line_no)
+                values (?,?,?,?,?,0,?,?,?)
+                """,id,input.lines().get(i).inventoryItemId(),material.get("code"),material.get("name"),
+                qty,qty,material.get("base_unit"),i+1);
+        }
+        audit.record("PURCHASE_REQUEST_CREATED","Compras",id.toString(),
+            number+" · solicitud manual de reposición · "+actor);
+        return detail(id);
     }
 
     @Transactional
