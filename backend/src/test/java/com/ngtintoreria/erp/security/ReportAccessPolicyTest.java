@@ -59,6 +59,16 @@ class ReportAccessPolicyTest {
     }
 
     @Test
+    void apiFinancieraSeDeniegaAProduccionInclusoSiTieneCostingRead() {
+        Authentication production = user("ROLE_PRODUCTION", "COSTING_READ", "REPORTS_EXPORT");
+        assertFalse(ReportAccessPolicy.canReadFinancial(production));
+        assertTrue(ReportAccessPolicy.canReadFinancial(user("ROLE_FINANCE", "COSTING_READ")));
+        assertTrue(ReportAccessPolicy.canReadFinancial(user("ROLE_ADMIN")));
+        assertTrue(ReportAccessPolicy.canReadFinancial(user("ROLE_PRODUCTION", "ROLE_FINANCE", "COSTING_READ")));
+        assertFalse(ReportAccessPolicy.canReadFinancial(null));
+    }
+
+    @Test
     void argumentosInvalidosSeRechazan() {
         assertFalse(ReportAccessPolicy.canExport(null, "/api/reports/production/orders.pdf"));
         assertFalse(ReportAccessPolicy.canExport(user("ROLE_PRODUCTION"), null));

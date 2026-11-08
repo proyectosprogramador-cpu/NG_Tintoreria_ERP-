@@ -23,8 +23,13 @@ public final class ReportAccessPolicy {
             "/api/reports/production/incidents.pdf"
     );
 
-    public static boolean canExport(Authentication authentication, String servletPath) {
-        if (authentication == null || authentication.getAuthorities() == null || servletPath == null) {
+    /**
+     * Defensa adicional: el rol exclusivamente Producción no accede a APIs
+     * financieras aunque una asignación posterior le devuelva COSTING_READ.
+     * Los usuarios con otros roles conservan los permisos específicos de cada endpoint.
+     */
+    public static boolean canReadFinancial(Authentication authentication) {
+        if (authentication == null || authentication.getAuthorities() == null) {
             return false;
         }
         boolean production = authentication.getAuthorities().stream()
@@ -32,6 +37,13 @@ public final class ReportAccessPolicy {
         boolean otherRole = authentication.getAuthorities().stream()
                 .map(a -> a.getAuthority())
                 .anyMatch(code -> code != null && code.startsWith("ROLE_") && !"ROLE_PRODUCTION".equals(code));
-        return !production || otherRole || PRODUCTION_PATHS.contains(servletPath);
+        return !production || otherRole;
+    }
+
+    public static boolean canExport(Authentication authentication, String servletPath) {
+        if (authentication == null || authentication.getAuthorities() == null || servletPath == null) {
+            return false;
+        }
+        return canReadFinancial(authentication) || PRODUCTION_PATHS.contains(servletPath);
     }
 }

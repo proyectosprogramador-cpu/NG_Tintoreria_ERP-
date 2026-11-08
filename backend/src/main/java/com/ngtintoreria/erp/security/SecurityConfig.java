@@ -44,6 +44,16 @@ public class SecurityConfig {
                             return new org.springframework.security.authorization.AuthorizationDecision(
                                     valid && ReportAccessPolicy.canExport(current, context.getRequest().getServletPath()));
                         })
+                        // También se restringen los endpoints financieros fuera de /api/reports.
+                        // @PreAuthorize continúa exigiendo COSTING_READ y los permisos de escritura.
+                        .requestMatchers("/api/costing/**", "/api/system/dashboard-financial", "/api/dashboard/financial")
+                        .access((authentication, context) -> {
+                            var current = authentication.get();
+                            boolean valid = current != null && current.isAuthenticated()
+                                    && !(current instanceof org.springframework.security.authentication.AnonymousAuthenticationToken);
+                            return new org.springframework.security.authorization.AuthorizationDecision(
+                                    valid && ReportAccessPolicy.canReadFinancial(current));
+                        })
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
