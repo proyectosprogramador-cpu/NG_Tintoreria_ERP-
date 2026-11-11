@@ -11,6 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/company")
@@ -25,13 +26,25 @@ public class CompanyController {
 
  @PutMapping @PreAuthorize("hasAuthority('COMPANY_WRITE')")
  public CompanyProfile update(@RequestBody CompanyProfile in){
+   String trade=clean(in.getTradeName()),legal=clean(in.getLegalName()),ruc=clean(in.getRuc()),phone=clean(in.getPhone()),email=clean(in.getEmail());
+   if(trade==null||trade.isBlank()) throw new IllegalArgumentException("Ingrese el nombre comercial.");
+   if(legal==null||legal.isBlank()) throw new IllegalArgumentException("Ingrese la razón social.");
+   if(ruc==null||!ruc.matches("\\d{11}")) throw new IllegalArgumentException("El RUC de la empresa debe tener exactamente 11 dígitos.");
+   if(phone!=null&&!phone.isBlank()&&!phone.matches("\\d{7,15}")) throw new IllegalArgumentException("El teléfono debe contener entre 7 y 15 dígitos.");
+   if(email!=null&&!email.isBlank()&&!email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) throw new IllegalArgumentException("Ingrese un correo electrónico válido.");
+   if(in.getIgvRate()<0||in.getIgvRate()>100) throw new IllegalArgumentException("El IGV debe estar entre 0 y 100%.");
+   String currency=clean(in.getBaseCurrency());
+   if(!Set.of("PEN","USD").contains(currency)) throw new IllegalArgumentException("Moneda base inválida.");
+
    CompanyProfile c=get();
-   c.setTradeName(in.getTradeName());c.setLegalName(in.getLegalName());c.setRuc(in.getRuc());c.setFiscalAddress(in.getFiscalAddress());
-   c.setPhone(in.getPhone());c.setEmail(in.getEmail());c.setBaseCurrency(in.getBaseCurrency());c.setIgvRate(in.getIgvRate());
+   c.setTradeName(trade);c.setLegalName(legal);c.setRuc(ruc);c.setFiscalAddress(clean(in.getFiscalAddress()));
+   c.setPhone(phone);c.setEmail(email);c.setBaseCurrency(currency);c.setIgvRate(in.getIgvRate());
    // logoUrl se conserva por compatibilidad, pero el logo cargado localmente tiene prioridad en documentos y reportes.
    c.setLogoUrl(in.getLogoUrl());
    c=repo.save(c);audit.record("EMPRESA_ACTUALIZADA","Empresa",c.getId().toString(),c.getTradeName());return c;
  }
+
+ private static String clean(String value){return value==null?null:value.trim();}
 
  @PostMapping(value="/logo",consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
  @PreAuthorize("hasAuthority('COMPANY_WRITE')")

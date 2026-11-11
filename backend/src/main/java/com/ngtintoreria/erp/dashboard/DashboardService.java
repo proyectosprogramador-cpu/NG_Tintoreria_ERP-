@@ -116,12 +116,13 @@ public class DashboardService {
         LocalDate[] p=period(from,to); from=p[0]; to=p[1];
         Map<String,Object> totals=one("""
             select count(*) costed_orders,
-                   coalesce(sum(allocated_sale_amount_base),0) sale_pen,
-                   coalesce(sum(total_cost),0) cost_pen,
-                   coalesce(sum(gross_margin),0) margin_pen,
-                   coalesce(sum(unvalued_material_qty),0) unvalued_material_kg
-              from production_cost_snapshots
-             where current_snapshot=true and calculated_at::date between ? and ?
+                   coalesce(sum(pcs.allocated_sale_amount_base),0) sale_pen,
+                   coalesce(sum(pcs.total_cost),0) cost_pen,
+                   coalesce(sum(pcs.gross_margin),0) margin_pen,
+                   coalesce(sum(pcs.unvalued_material_qty),0) unvalued_material_kg
+              from production_cost_snapshots pcs
+              join production_orders po on po.id=pcs.production_order_id
+             where pcs.current_snapshot=true and po.actual_end::date between ? and ?
             """,from,to);
         BigDecimal sale=bd(totals.get("sale_pen")),margin=bd(totals.get("margin_pen"));
         totals.put("margin_pct",sale.signum()==0?BigDecimal.ZERO:margin.multiply(BigDecimal.valueOf(100)).divide(sale,2,java.math.RoundingMode.HALF_UP));
@@ -141,14 +142,14 @@ public class DashboardService {
                    case when coalesce(sum(pcs.allocated_sale_amount_base),0)=0 then 0
                         else round(sum(pcs.gross_margin)*100/sum(pcs.allocated_sale_amount_base),2) end margin_pct
               from production_cost_snapshots pcs join production_orders po on po.id=pcs.production_order_id join clients c on c.id=po.client_id
-             where pcs.current_snapshot=true and pcs.calculated_at::date between ? and ?
+             where pcs.current_snapshot=true and po.actual_end::date between ? and ?
              group by c.id,c.name order by margin_pen desc limit 8
             """,from,to);
         List<Map<String,Object>> topOrders=jdbc.queryForList("""
             select po.production_number,po.batch_number,c.name client_name,pcs.total_cost,pcs.allocated_sale_amount_base,
                    pcs.gross_margin,pcs.margin_pct,pcs.cost_per_output_kg,pcs.unvalued_material_qty
               from production_cost_snapshots pcs join production_orders po on po.id=pcs.production_order_id join clients c on c.id=po.client_id
-             where pcs.current_snapshot=true and pcs.calculated_at::date between ? and ?
+             where pcs.current_snapshot=true and po.actual_end::date between ? and ?
              order by pcs.gross_margin desc limit 10
             """,from,to);
         return Map.of("period",Map.of("from",from,"to",to),"totals",totals,"coverage",coverage,"topClients",topClients,"topOrders",topOrders);

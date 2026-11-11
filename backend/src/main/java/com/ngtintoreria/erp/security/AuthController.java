@@ -33,6 +33,7 @@ public class AuthController {
     private final AuthSessionRepository sessions;
     private final PasswordEncoder encoder;
     private final AuditService audit;
+    private final PasswordResetService passwordReset;
     private final int maxAttempts;
     private final int lockMinutes;
 
@@ -42,6 +43,7 @@ public class AuthController {
                           AuthSessionRepository sessions,
                           PasswordEncoder encoder,
                           AuditService audit,
+                          PasswordResetService passwordReset,
                           @Value("${app.security.max-login-attempts:5}") int maxAttempts,
                           @Value("${app.security.lock-minutes:15}") int lockMinutes) {
         this.authenticationManager = authenticationManager;
@@ -50,6 +52,7 @@ public class AuthController {
         this.sessions = sessions;
         this.encoder = encoder;
         this.audit = audit;
+        this.passwordReset = passwordReset;
         this.maxAttempts = Math.max(3, maxAttempts);
         this.lockMinutes = Math.max(5, lockMinutes);
     }
@@ -59,8 +62,22 @@ public class AuthController {
                            List<String> authorities, OffsetDateTime lastLoginAt, OffsetDateTime lockedUntil) {}
     public record LoginResponse(String token, UserView user) {}
     public record ChangePasswordRequest(@NotBlank String currentPassword, @NotBlank String newPassword) {}
+    public record ForgotPasswordRequest(@Email @NotBlank String email) {}
+    public record ResetPasswordRequest(@NotBlank String token, @NotBlank String newPassword) {}
     public record SessionView(UUID id, OffsetDateTime issuedAt, OffsetDateTime expiresAt, OffsetDateTime lastSeenAt,
                               String ipAddress, String userAgent, boolean current) {}
+
+    @PostMapping("/forgot-password")
+    public Map<String,Object> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request, HttpServletRequest http) {
+        passwordReset.request(request.email(), clientIp(http));
+        return Map.of("message", "Si el correo corresponde a una cuenta habilitada, recibirá un enlace de recuperación.");
+    }
+
+    @PostMapping("/reset-password")
+    public Map<String,Object> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordReset.reset(request.token(), request.newPassword());
+        return Map.of("message", "Contraseña actualizada correctamente. Ya puede iniciar sesión.");
+    }
 
     @PostMapping("/login")
     public LoginResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
