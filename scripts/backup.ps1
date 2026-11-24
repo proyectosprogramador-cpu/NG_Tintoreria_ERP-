@@ -17,8 +17,7 @@ Get-Content '.env' | ForEach-Object { if($_ -match '^([^#=]+)=(.*)$'){ $cfg[$mat
 $dbUser=if($cfg['POSTGRES_USER']){$cfg['POSTGRES_USER']}else{'ngerp'}
 $dbName=if($cfg['POSTGRES_DB']){$cfg['POSTGRES_DB']}else{'ng_tintoreria'}
 & docker compose up -d db | Out-Null
-# No certificar como VERIFIED una base vacia o incompleta. Esta comprobacion evita
-# crear una falsa copia valida si el esquema productivo fue borrado accidentalmente.
+# Comprueba el esquema para no validar un respaldo vacio o incompleto.
 $tableCount=(& docker exec ng_tintoreria_db psql -U $dbUser -d $dbName -tAc "select count(*) from pg_tables where schemaname='public';" 2>$null | Out-String).Trim()
 $flywayExists=(& docker exec ng_tintoreria_db psql -U $dbUser -d $dbName -tAc "select case when to_regclass('public.flyway_schema_history') is null then 0 else 1 end;" 2>$null | Out-String).Trim()
 $tc=0; [void][int]::TryParse($tableCount,[ref]$tc)

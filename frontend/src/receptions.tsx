@@ -26,9 +26,7 @@ function Overlay({title,onClose,children,print=false}:{title:string;onClose:()=>
 
 export function Receptions({canWrite,canRelease,canReportsExport,onError}:Props){
  const [rows,setRows]=useState<any[]>([]),[orders,setOrders]=useState<any[]>([]),[fabrics,setFabrics]=useState<any[]>([]),[edit,setEdit]=useState<any|null>(null),[selected,setSelected]=useState<any|null>(null),[search,setSearch]=useState(''),[filter,setFilter]=useState('ALL'),[busy,setBusy]=useState(false);
- // La consulta de recepciones es independiente de los catalogos usados para EDITAR.
- // Un usuario de solo lectura (p. ej., Laboratorio) no debe llamar a endpoints
- // comerciales/maestros que su rol no tiene autorizados.
+ // Los usuarios de solo lectura consultan recepciones sin cargar catálogos de edición.
  const load=async()=>{
   try {
    const receptions=await api('/receptions');
@@ -42,7 +40,7 @@ export function Receptions({canWrite,canRelease,canReportsExport,onError}:Props)
    setFabrics([]);
    return;
   }
-  // Un error de un catalogo auxiliar nunca debe ocultar las recepciones ya cargadas.
+  // Conserva las recepciones si falla un catálogo de edición.
   const [ordersResult,fabricsResult]=await Promise.allSettled([api('/orders'),api('/masters/fabrics')]);
   if(ordersResult.status==='fulfilled')setOrders(ordersResult.value);
   else{setOrders([]);onError(`No se pudieron cargar los pedidos para recepcion: ${ordersResult.reason?.message||'Error de consulta'}`)}

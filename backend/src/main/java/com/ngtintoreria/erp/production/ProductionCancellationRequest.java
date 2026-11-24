@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-/** Solicitud de cancelacion pendiente de autorizacion administrativa. */
+/** Solicitud de cancelación pendiente de autorización administrativa. */
 @Entity
 @Table(name="production_cancellation_requests")
 public class ProductionCancellationRequest {

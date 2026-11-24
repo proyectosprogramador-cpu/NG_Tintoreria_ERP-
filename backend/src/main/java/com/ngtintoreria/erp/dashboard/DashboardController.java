@@ -12,10 +12,9 @@ public class DashboardController {
     private final DashboardService dashboard;
     public DashboardController(DashboardService dashboard){this.dashboard=dashboard;}
 
-    // El resumen operativo queda disponible para cualquier usuario autenticado.
-    // La visibilidad del menú sigue gobernada por DASHBOARD_READ en el frontend y
-    // Spring Security ya exige autenticación para /api/**. Esto evita 403 espurios
-    // causados por desalineaciones de authorities tras una actualización.
+    // Resumen disponible para usuarios autenticados; Spring Security protege /api/**.
+    // DASHBOARD_READ controla el menú en el frontend.
+    // Evita errores 403 por permisos desactualizados tras una actualización.
     @GetMapping("/summary")
     @PreAuthorize("isAuthenticated()")
     public Map<String,Object> summary(@RequestParam(required=false) LocalDate from,@RequestParam(required=false) LocalDate to){return dashboard.summary(from,to);}
