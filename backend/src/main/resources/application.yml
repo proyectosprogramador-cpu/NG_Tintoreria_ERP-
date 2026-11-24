@@ -39,7 +39,7 @@ spring:
   jackson:
     time-zone: America/Lima
 management:
-  # SMTP/WhatsApp son canales auxiliares. Su disponibilidad no debe tumbar la salud del ERP.
+  # Excluye SMTP del estado de salud para que un fallo de correo no afecte al ERP.
   health:
     mail:
       enabled: false

@@ -39,7 +39,7 @@ public class CompanyController {
    CompanyProfile c=get();
    c.setTradeName(trade);c.setLegalName(legal);c.setRuc(ruc);c.setFiscalAddress(clean(in.getFiscalAddress()));
    c.setPhone(phone);c.setEmail(email);c.setBaseCurrency(currency);c.setIgvRate(in.getIgvRate());
-   // logoUrl se conserva por compatibilidad, pero el logo cargado localmente tiene prioridad en documentos y reportes.
+   // Se conserva logoUrl por compatibilidad; el logo local tiene prioridad en documentos y reportes.
    c.setLogoUrl(in.getLogoUrl());
    c=repo.save(c);audit.record("EMPRESA_ACTUALIZADA","Empresa",c.getId().toString(),c.getTradeName());return c;
  }

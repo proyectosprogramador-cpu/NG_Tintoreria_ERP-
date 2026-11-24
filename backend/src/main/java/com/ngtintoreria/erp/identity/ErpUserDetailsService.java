@@ -33,9 +33,8 @@ public class ErpUserDetailsService implements UserDetailsService {
             role.getPermissions().forEach(p -> auths.add(new SimpleGrantedAuthority(p.getCode())));
         }
 
-        // El rol ADMIN es el propietario del ERP y debe conservar acceso total incluso
-        // cuando una actualización agregue un permiso nuevo y falte temporalmente la
-        // fila de enlace role_permissions. Esto evita 403 por desalineación de migraciones.
+        // ADMIN conserva todos los permisos aunque falten enlaces en role_permissions.
+        // Evita errores 403 tras agregar permisos en una migración.
         if (isAdmin) {
             permissions.findAll().forEach(p -> auths.add(new SimpleGrantedAuthority(p.getCode())));
         }

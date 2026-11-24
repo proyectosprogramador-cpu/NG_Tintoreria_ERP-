@@ -13,9 +13,9 @@ import java.time.Duration;
 import java.util.*;
 
 /**
- * Pasarela opcional para un proveedor de IA compatible con /chat/completions.
- * Está DESACTIVADA por defecto. Solo recibe hechos que CopilotService ya filtró
- * por permisos; nunca recibe conexión SQL, credenciales ni herramientas de escritura.
+ * Conecta NG Copiloto con un proveedor de IA compatible con /chat/completions.
+ * Conexión desactivada por defecto. Usa hechos filtrados por permisos en CopilotService,
+ * sin conexión SQL, credenciales del ERP ni herramientas de escritura.
  */
 @Component
 public class CopilotAiClient {

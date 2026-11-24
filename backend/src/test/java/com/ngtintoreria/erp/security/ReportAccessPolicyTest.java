@@ -55,7 +55,7 @@ class ReportAccessPolicyTest {
         assertTrue(ReportAccessPolicy.canExport(
                 user("ROLE_PRODUCTION", "ROLE_FINANCE", "REPORTS_EXPORT"),
                 "/api/reports/costing/orders.pdf"));
-        // En estos casos ReportController todavía exige su @PreAuthorize por informe.
+        // ReportController exige @PreAuthorize para cada informe.
     }
 
     @Test

@@ -152,7 +152,7 @@ public class ProductionController {
   return dto(order);
  }
 
- /** Planificacion solicita una cancelacion, pero la OP no cambia de estado. */
+ /** Planificación solicita la cancelación sin cambiar el estado de la OP. */
  @PostMapping("/{id}/cancellation-requests")
  @Transactional
  @PreAuthorize("hasAuthority('PRODUCTION_PLANNING') or hasAuthority('ROLE_ADMIN')")
@@ -170,7 +170,7 @@ public class ProductionController {
   return dto(order);
  }
 
- /** Solo Administrador puede aprobar o rechazar una solicitud vigente. */
+ /** Solo el administrador puede aprobar o rechazar una solicitud vigente. */
  @PostMapping("/{id}/cancellation-requests/{requestId}/decision")
  @Transactional
  @PreAuthorize("hasAuthority('ROLE_ADMIN')")

@@ -5,11 +5,9 @@ import org.springframework.security.core.Authentication;
 import java.util.Set;
 
 /**
- * Restricción complementaria de reportes por rol. La autorización específica
- * de cada informe se sigue validando en ReportController con @PreAuthorize.
- *
- * El perfil exclusivamente Producción recibe solo informes de su propio proceso.
- * Si se asigna intencionalmente otro rol, se respetan sus permisos acumulados.
+ * Filtra reportes por rol; ReportController valida cada permiso con @PreAuthorize.
+ * Un usuario con solo el rol Producción accede a reportes de su proceso.
+ * Los usuarios con otros roles conservan sus permisos acumulados.
  */
 public final class ReportAccessPolicy {
     private ReportAccessPolicy() {}
@@ -24,9 +22,8 @@ public final class ReportAccessPolicy {
     );
 
     /**
-     * Defensa adicional: el rol exclusivamente Producción no accede a APIs
-     * financieras aunque una asignación posterior le devuelva COSTING_READ.
-     * Los usuarios con otros roles conservan los permisos específicos de cada endpoint.
+     * Bloquea las APIs financieras para usuarios con solo el rol Producción,
+     * incluso si tienen COSTING_READ. Cada endpoint mantiene sus permisos específicos.
      */
     public static boolean canReadFinancial(Authentication authentication) {
         if (authentication == null || authentication.getAuthorities() == null) {
