@@ -70,6 +70,11 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    environment:
+      PORT: "80"
+    volumes:
+      # En Windows/LAN usar proxy al backend LOCAL, nunca al backend de Render.
+      - ./frontend/nginx.local.conf:/etc/nginx/templates/default.conf.template:ro
     ports:
       - "${ERP_PORT:-8080}:80"
 
