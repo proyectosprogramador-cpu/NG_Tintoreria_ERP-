@@ -158,10 +158,8 @@ public class DashboardService {
         LocalDate trendFrom=from;
         if(trendFrom.isBefore(to.minusDays(30))) trendFrom=to.minusDays(30);
 
-        // R4: no usamos generate_series con parámetros JDBC. En algunas instalaciones
-        // PostgreSQL/driver resolvía de forma ambigua los tipos DATE/TIMESTAMP y el
-        // Dashboard fallaba al llegar a esta consulta. Construimos el calendario en Java
-        // y solo consultamos agregados simples, igual que el resto del módulo.
+        // El calendario se genera en Java para evitar la ambigüedad DATE/TIMESTAMP
+        // de generate_series con parámetros JDBC en algunas instalaciones.
         Map<LocalDate,Map<String,Object>> days=new LinkedHashMap<>();
         for(LocalDate d=trendFrom; !d.isAfter(to); d=d.plusDays(1)){
             Map<String,Object> row=new LinkedHashMap<>();

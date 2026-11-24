@@ -53,9 +53,8 @@ function Invoke-CmdIsolated([string]$command,[switch]$ShowOutput){
 }
 
 function RestoreSql($path){
-  # PowerShell 5.1 convierte stderr de programas nativos en NativeCommandError.
-  # Ejecutamos psql mediante Start-Process con stdout/stderr redirigidos y
-  # decidimos el resultado exclusivamente por ExitCode.
+  # Start-Process evita que PowerShell 5.1 interprete stderr como NativeCommandError.
+  # El codigo de salida de psql determina si la restauracion fue correcta.
   $dropCmd="docker exec ng_tintoreria_db psql -U $dbUser -d $dbName -v ON_ERROR_STOP=1 -c `"DROP SCHEMA public CASCADE; CREATE SCHEMA public;`""
   $rc=Invoke-CmdIsolated $dropCmd
   if($rc -ne 0){return $rc}

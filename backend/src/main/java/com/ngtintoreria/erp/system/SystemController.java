@@ -23,8 +23,7 @@ public class SystemController {
         this.dashboard = dashboard;
     }
 
-    /** Endpoint mínimo y sin datos sensibles para que el actualizador pueda confirmar
-     * que backend y frontend pertenecen a la misma revisión. */
+    /** Permite al actualizador comparar las revisiones de backend y frontend sin exponer datos sensibles. */
     @GetMapping("/build")
     public Map<String,Object> build() {
         return Map.of("version", VERSION, "backend", "UP");
@@ -44,8 +43,8 @@ public class SystemController {
     }
 
     /**
-     * R4: el resumen se sirve bajo /system porque /system/status ya demostró funcionar
-     * correctamente con el mismo JWT en la instalación. Solo exige sesión autenticada.
+     * Resumen bajo /system con la misma autenticación JWT de /system/status.
+     * Requiere una sesión autenticada.
      */
     @GetMapping("/dashboard-summary")
     @PreAuthorize("isAuthenticated()")

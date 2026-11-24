@@ -1,4 +1,4 @@
-/** Exportacion local de la ficha tecnica; no requiere librerias externas ni modifica datos. */
+/** Exporta la ficha técnica sin dependencias externas. */
 type Field = {label:string;value:string};
 type Section = {title:string;fields:Field[]};
 type Sheet = {code:string;name:string;sections:Section[];issuedAt:string};
@@ -55,7 +55,7 @@ export function machineSheet(machine:any):Sheet {
 
 const esc=(text:string)=>text.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c));
 
-/** Ventana de impresion independiente, sin imprimir la barra lateral o controles del ERP. */
+/** Imprime la ficha en una ventana sin controles del ERP. */
 export function printMachineSheet(machine:any):void {
  const sheet=machineSheet(machine);
  const popup=window.open('','_blank','width=950,height=850');
@@ -79,7 +79,7 @@ export function printMachineSheet(machine:any):void {
  popup.document.open();popup.document.write(html);popup.document.close();
 }
 
-/** Convierte caracteres espanoles a codificacion WinAnsi usando escapes octales PDF. */
+/** Codifica acentos y eñes con escapes octales compatibles con WinAnsi. */
 function pdfLiteral(input:string):string {
  const substitutions:Record<string,string>={'—':'-','–':'-','‘':"'",'’':"'",'“':'"','”':'"','…':'...','•':'-'};
  return Array.from(input.replace(/\s+/g,' ')).map(ch=>{
@@ -97,7 +97,7 @@ function pdfLiteral(input:string):string {
 }
 const cropped=(s:string,max=46)=>s.length<=max?s:s.slice(0,max-3)+'...';
 
-/** PDF A4 real, descargable, de una pagina y sin dependencia de terceros. */
+/** Descarga la ficha en un PDF A4 de una página. */
 export function downloadMachineSheetPdf(machine:any):void {
  const sheet=machineSheet(machine);
  const parts:string[]=[];

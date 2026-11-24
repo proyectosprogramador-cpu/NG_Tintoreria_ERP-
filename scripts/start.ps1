@@ -20,7 +20,7 @@ try { docker info *> $null } catch { Fail "Docker Desktop esta instalado pero el
 $envFile = Join-Path $root '.env'
 $credentialsFile = Join-Path $root 'CREDENCIALES_INICIALES.txt'
 
-# Si el proyecto ya esta corriendo, reutiliza su puerto y no levanta otra instancia.
+# Reutiliza el puerto si el frontend ya esta en ejecucion.
 $running = (& docker compose ps --services --status running 2>$null) -join ','
 if ($running -match 'frontend') {
   $line = Get-Content $envFile -ErrorAction SilentlyContinue | Where-Object { $_ -match '^ERP_PORT=' } | Select-Object -First 1
