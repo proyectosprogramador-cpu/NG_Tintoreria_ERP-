@@ -354,3 +354,8 @@ body>.alert,.shell>main>.alert{position:fixed;top:78px;right:22px;z-index:120;wi
     width:100%;
   }
 }
+
+/* Registro rápido de insumos durante la elaboración de solicitudes y OC */
+.purchase-item-picker{display:flex;gap:6px;align-items:center;min-width:240px}
+.purchase-item-picker select{flex:1 1 auto;min-width:0}
+.purchase-item-picker button{flex:0 0 auto;white-space:nowrap}

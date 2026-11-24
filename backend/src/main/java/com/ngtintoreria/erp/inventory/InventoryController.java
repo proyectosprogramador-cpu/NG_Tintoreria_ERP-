@@ -24,6 +24,14 @@ public class InventoryController {
     @PreAuthorize("hasAuthority('INVENTORY_MOVEMENTS')")
     public Map<String,Object> saveItem(@RequestBody InventoryService.ItemRequest input, Authentication auth){return inventory.saveItem(input,auth.getName());}
 
+    /** Alta rápida para usuarios autorizados de Compras o Almacén; no permite editar insumos existentes. */
+    @PostMapping("/items/quick")
+    @PreAuthorize("hasAuthority('INVENTORY_ITEMS_WRITE')")
+    public Map<String,Object> createQuickItem(@RequestBody InventoryService.ItemRequest input,Authentication auth){
+        if(input==null||input.id()!=null)throw new IllegalArgumentException("El alta rápida solo permite crear insumos nuevos");
+        return inventory.saveItem(input,auth.getName());
+    }
+
     @GetMapping("/movements")
     @PreAuthorize("hasAuthority('INVENTORY_READ')")
     public List<Map<String,Object>> movements(@RequestParam(defaultValue="200") int limit){return inventory.movements(limit);}

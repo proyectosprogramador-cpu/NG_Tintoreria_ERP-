@@ -38,6 +38,8 @@ public class ApiExceptionHandler {
             message = "El código de unidad ingresado ya existe.";
         } else if(detail.contains("machines_code_key")){
             message = "El código de máquina ingresado ya existe.";
+        } else if(detail.contains("inventory_items_code_key")){
+            message = "El código de insumo ingresado ya existe. Seleccione el insumo del catálogo.";
         } else {
             message = "Existe un dato duplicado o una restricción que impide guardar el registro. Revise los campos marcados como únicos.";
         }
