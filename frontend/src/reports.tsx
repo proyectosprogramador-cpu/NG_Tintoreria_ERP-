@@ -4,8 +4,7 @@ type Props={authorities:Set<string>;onError:(message:string)=>void};
 const API='/api';const token=()=>localStorage.getItem('ngerp_token')||'';const iso=(d:Date)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 async function file(path:string,open=false){const headers:Record<string,string>={};if(token())headers.Authorization=`Bearer ${token()}`;const r=await fetch(API+path,{headers});if(!r.ok)throw new Error(await r.text()||`HTTP ${r.status}`);const blob=await r.blob();const cd=r.headers.get('content-disposition')||'';const utf=cd.match(/filename\*=UTF-8''([^;]+)/i),simple=cd.match(/filename="?([^";]+)"?/i);const name=utf?decodeURIComponent(utf[1]):simple?.[1]||'reporte';const url=URL.createObjectURL(blob);if(open){window.open(url,'_blank','noopener,noreferrer');setTimeout(()=>URL.revokeObjectURL(url),60000);return}const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
 const can=(a:Set<string>,p:string)=>a.has(p)||a.has('ROLE_ADMIN');
-// El rol exclusivamente PRODUCTION puede exportar solo informes operativos de su área.
-// Otros perfiles y combinaciones de roles siguen sujetos a sus permisos originales.
+// El perfil exclusivo PRODUCTION solo puede exportar estos informes operativos.
 const productionReports=new Set(['production/orders','production/consumption','production/incidents']);
 const isProductionOnly=(a:Set<string>)=>a.has('ROLE_PRODUCTION')&&![...a].some(p=>p.startsWith('ROLE_')&&p!=='ROLE_PRODUCTION');
 export function ReportsCenter({authorities,onError}:Props){const end=new Date(),start=new Date();start.setDate(end.getDate()-29);const [from,setFrom]=useState(iso(start)),[to,setTo]=useState(iso(end));const q=()=>`?from=${from}&to=${to}`;

@@ -302,8 +302,8 @@ public class IndustrialCostService {
             select coalesce(sum(extract(epoch from (actual_end-actual_start))/60),0)
               from production_operations where production_order_id=? and actual_start is not null and actual_end is not null
             """,BigDecimal.class,orderId);
-        // La duración real de una operación ya incluye las paradas ocurridas entre inicio y fin.
-        // No sumamos nuevamente production_incidents.downtime_minutes para evitar doble costeo.
+        // La duración real de la operación incluye las paradas entre inicio y fin.
+        // No se suma production_incidents.downtime_minutes para evitar duplicar costos.
         BigDecimal minutes=bd(operationMinutes);
         if(minutes.compareTo(BigDecimal.ZERO)==0){
             Map<String,Object> po=one("select actual_start,actual_end from production_orders where id=?",orderId);

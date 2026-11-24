@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
 @RequestMapping("/api/system-health")
 public class SystemHealthController {
     private static final String APP_VERSION = "0.13.2-R2";
-    // Las migraciones incluidas en el JAR son la fuente de verdad (sin versión fija).
+    // Las migraciones del JAR determinan la versión requerida del esquema.
     private static final Pattern VERSIONED_SQL_MIGRATION =
             Pattern.compile("^V([0-9][0-9._]*)__.+\\.sql$");
 
